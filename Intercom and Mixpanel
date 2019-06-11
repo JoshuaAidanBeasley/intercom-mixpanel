@@ -1,0 +1,111 @@
+#import packages
+import pandas as pd
+import mixpanel
+import requests
+import json
+import numpy as np
+from requests.auth import HTTPBasicAuth
+from mixpanel_api import Mixpanel
+from intercom.client import Client
+
+#INTERCOM
+#set up intercom
+intercom = Client(personal_access_token='')
+
+#request access from mixpanel using basic https auth
+requests.get(access_URL, auth=HTTPBasicAuth(API_secret, API_key))
+
+#create instance of mixpanel called 'm'
+if __name__ == '__main__':
+    credentials = {
+        'API_secret': API_secret,
+        'token': token,
+    }
+
+m = Mixpanel(credentials['API_secret'])
+
+#create a list of users from intercom
+users = []
+for user in intercom.users.scroll():
+    users.append(user)
+
+# loop across users and create different lists to put in df
+name = []
+user_id = []
+phone_number =[]
+country = []
+date = []
+city = []
+region = []
+for i in range(len(users)):
+    name.append(users[i].name)
+    user_id.append(users[i].user_id)
+    country.append(users[i].location_data.country_name)
+    date.append(users[i].created_at)
+    city.append(users[i].location_data.city_name)
+    region.append(users[i].location_data.region_name)
+    phone_number.append(users[i].phone)
+
+
+#MIXPANEL
+
+#set up tokens and keys for mixpanel account
+access_URL = ''
+token = ''
+API_key = ''
+API_secret = ''
+
+#request events from mixpanel for april
+script = '''
+function main() {
+  return join(
+    Events({
+       from_date: '2019-04-01',
+       to_date:   '2019-04-15',
+       event_selectors: [
+        ///get HOE events
+        {event: 'Request_Recommendations', label: 'request'},
+        {event: 'Tab_Pressed', selector: '"Events" in properties["$category"]' ,  label: 'Event'},
+        {event: 'Tab_Pressed', selector: '"Offers" in properties["$category"]' ,  label: 'Offer'}
+        ]
+    }),
+    People(),
+    {
+      type:"inner",
+    }
+  );
+}
+'''
+
+#request events from mixpanel for april
+
+response = m.query_jql(script)
+
+#write json events into text file line by line
+file = open('users.txt','w+')
+for ob in response:
+    action = json.dumps(ob)
+    file.write(json.dumps(ob) + '\n')
+file.close()
+
+#open text file
+#read each line of teaxt file and save the country code and phone number in list
+country_code = []
+phone_number = []
+with open('users.txt') as file:
+    for line in file:
+        event_json = json.loads(line)
+        user = event_json['user']
+        prop = user['properties']
+
+        if '$phone' in prop:
+            phone_number.append(prop['$phone'])
+        else:
+            phone_number.append(np.nan)
+
+        if 'mp_country_code' in prop:
+            country_code.append(prop['country_code'])
+        else:
+            country_code.append(np.nan)
+
+df_mp = pd.DataFrame({'country_code':country_code, 'phone_number':phone_number})
