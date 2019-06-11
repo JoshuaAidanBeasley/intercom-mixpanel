@@ -55,7 +55,7 @@ token = ''
 API_key = ''
 API_secret = ''
 
-#request events from mixpanel for april
+#request events from mixpanel for april. 'script' is a JQL query requested from mixpanel.
 script = '''
 function main() {
   return join(
@@ -63,7 +63,7 @@ function main() {
        from_date: '2019-04-01',
        to_date:   '2019-04-15',
        event_selectors: [
-        ///get HOE events
+        ///get events
         {event: 'Request_Recommendations', label: 'request'},
         {event: 'Tab_Pressed', selector: '"Events" in properties["$category"]' ,  label: 'Event'},
         {event: 'Tab_Pressed', selector: '"Offers" in properties["$category"]' ,  label: 'Offer'}
